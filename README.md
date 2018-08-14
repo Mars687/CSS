@@ -135,3 +135,249 @@ css中使用媒体查询的语法：
 ```
 
 上面代码中，媒体类型为all，代表任何设备，并且设备的布局视口宽度大于等于321px且小于等于400px时，让拥有box类的元素背景变红。
+
+## rem
+
+### 什么是rem？
+
+rem是相对尺寸单位，相对于html标签字体大小的单位，举个例子：
+如果html的font-size = 18px;
+那么1rem = 18px，需要记住的是，rem是基于html标签的字体大小的。
+
+相信你已经明白了，对没错，我们要把之前用px做元素尺寸的单位换成rem，所以，现在的问题就是如果转换，因为rem是根据html标签的font-size值确定的，所以我们只要确定html标签的font-size值就行了，我们首先自己定一个标准，就是让font-size的值等于设备像素的十分之一(即设备像素可显示10个字)，即：
+
+>     document.documentElement.style.fontSize = document.documentElement.clientWidth / 10 + 'px';
+
+以iphone6为例，html标签的font-size的值就等于 750 / 10 = 75px 了，这样 1rem = 75px，所以红色方块200px换算为rem单位就是 200 / 75 = 2.6666667rem。
+那么在iphone5中呢？因为iphone5的设备像素为640，所以iphone的html标签的font-size的值为 640 / 10 = 64px，所以 1rem = 64px，所以在iphone6中显示为200px的元素在iphone5中会显示为 2.6666667 * 64 像素，这样，在不同设备中就实现了让元素等比缩放从而不影响布局。而上面的方法也是手机淘宝所用的方法。所以，现在你只需要将你测量的尺寸数据除以75就转换成了rem单位，如果是iPhone5就要除以64，即除以你动态设置的font-size的值。
+
+另外需要注意的是：做页面的时候文字字体大小不要用rem换算，还是使用px做单位。后面会讲到。
+
+让我们来总结一下我们现在了解的方法：
+
+1、将布局视口大小设为设备像素尺寸：
+
+``` javascript
+var scale = 1 / window.devicePixelRatio;
+document.querySelector('meta[name="viewport"]').setAttribute('content','width=device-width,initial-scale=' + scale + ', maximum-scale=' + scale + ', minimum-scale=' + scale + ', user-scalable=no');
+```
+
+2、动态设置html字体大小：
+
+>     document.documentElement.style.fontSize = document.documentElement.clientWidth / 10 + 'px';
+
+3、将设计图中的尺寸换算成rem
+
+元素的rem尺寸 = 元素的psd稿测量的像素尺寸 / 动态设置的html标签的font-size值
+
+说了一大堆，其实我们使用下面的html莫板就可以写页面了，唯一需要你做的就是计算元素的rem尺寸，所以即使你没看懂上面的讲述也不重要，你只要将模板拿过去用就好了：
+
+``` html
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="" />
+</head>
+<body>
+    <script>
+    var scale = 1 / window.devicePixelRatio;
+    document.querySelector('meta[name="viewport"]').setAttribute('content','width=device-width,initial-scale=' + scale + ', maximum-scale=' + scale + ', minimum-scale=' + scale + ', user-scalable=no');
+
+    document.documentElement.style.fontSize = document.documentElement.clientWidth / 10 + 'px';
+    </script>
+</body>
+</html>
+```
+
+现在我们使用上面的方法修改我们的代码如下：
+
+``` html
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="" />
+    <style>
+    body{
+        margin: 0;
+        padding: 0;
+    }
+    .box{
+        width: 2.66666667rem;
+        height: 2.66666667rem;
+        background: red;
+    }
+    </style>
+</head>
+<body>
+    <div class="box"></div>
+
+    <script>
+    var scale = 1 / window.devicePixelRatio;
+    document.querySelector('meta[name="viewport"]').setAttribute('content','width=device-width,initial-scale=' + scale + ', maximum-scale=' + scale + ', minimum-scale=' + scale + ', user-scalable=no');
+
+    document.documentElement.style.fontSize = document.documentElement.clientWidth / 10 + 'px';
+    </script>
+</body>
+</html>
+```
+
+打开浏览器，分别在iPhone6和iPhone5下查看页面，我们会发现，现在的元素可以根据手机的尺寸不同而等比缩放了。
+
+上面的方法是手机淘宝的方法，有一个缺点，就是转化rem单位的时候，需要除以font-size的值，淘宝用的是iPhone6的设计图，所以淘宝转换尺寸的时候要除以75，这个值可不好算，所以还要借用计算器来完成，影响开发效率，另外，在转还rem单位时遇到除不尽的数时我们会采用很长的近似值比如上面的2.6666667rem，这样可能会使页面元素的尺寸有偏差。
+
+除了上面的方法比较通用之外，还有一种方式，我们来重新思考一下：
+
+上面做页面的思路是：拿到设计图，比如iPhone6的设计图，我们就将浏览器设置到iPhone6设备调试，然后使用js动态修改meta标签，使布局视口的尺寸等于设计图尺寸，也就是设备像素尺寸，然后使用rem替代px，使得页面在不同设备中等比缩放。
+
+现在假如我们不去修改meta标签，正常使用缩放为1:1的meta标签，即使用如下meta标签：
+
+>     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+
+还以iPhone6为例，我们知道，在缩放为1:1的情况下，根据公式：
+
+设备像素比（DPR） = 设备像素个数 / 理想视口像素个数（device-width）
+
+我们知道：
+设备像素 = 设计图尺寸 = 750px
+布局视口 = 375px
+
+假设我们以iPhone6设计图尺寸为标准，在设计图的尺寸下设置一个font-size值为100px。
+也就是说：750px宽的页面，我们设置100px的font-size值，那么页面的宽度换算为rem就等于 750 / 100 = 7.5rem。
+
+我们就以页面总宽为7.5rem为标准，那么在布局视口中，也就是页面总宽为375px下，font-size值应该是多少？很简单：
+
+>font-size = 375 / 7.5 = 50px
+
+那么在iPhone5下呢？因为iPhone5的布局视口宽为320px，所以如果页面总宽以7.5为标准，那么iPhone5下我们设置的font-size值应该是：
+
+>font-size = 320 / 7.5 =42.666666667px
+
+也就是说，不管在什么设备下，我们都可以把页面的总宽度设为一个以rem为单位的定值，比如本例就是7.5rem，只不过，我们需要根据布局视口的尺寸动态设置font-size的值：
+
+>     document.documentElement.style.fontSize = document.documentElement.clientWidth / 7.5 + 'px';
+
+这样，无论在什么设备下，我们页面的总宽度都是7.5rem，所以我们直接在设计图上测量px单位的尺寸，然后除以100转换成rem单位后直接使用就可以了，比如，在iPhone6设计图中测量一个元素的尺寸为200px，那么转换成rem单位就是 200 / 100 = 2rem，因为在不同设备下我们动态设置了html标签的font-size值，所以不同设备下相同的rem值对应的像素值是不同的，这样就实现了在不同设备下等比缩放。我们修改html代码如下：
+
+``` html
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <style>
+    body{
+        margin: 0;
+        padding: 0;
+    }
+    .box{
+        width: 2rem;
+        height: 2rem;
+        background: red;
+    }
+    </style>
+</head>
+<body>
+
+    <div class="box"></div>
+
+    <script>
+    document.documentElement.style.fontSize = document.documentElement.clientWidth / 7.5 + 'px';
+    </script>
+</body>
+</html>
+```
+
+刷新页面，分别在iPhone6和iPhone5下调试查看结果，会发现如下图，使我们想要的效果，等比缩放，ok，实际上这种做法也是网易的做法。
+
+下面，我们来总结一下第二种做法：
+
+1、拿到设计图，计算出页面的总宽，为了好计算，取100px的font-size，如果设计图是iPhone6的那么计算出的就是7.5rem，如果页面是iPhone5的那么计算出的结果就是6.4rem。
+
+2、动态设置html标签的font-size值：
+
+>     document.documentElement.style.fontSize = document.documentElement.clientWidth / 以rem为单位的页面总宽 + 'px';
+
+  如iPhone6的设计图就是：
+
+>     document.documentElement.style.fontSize = document.documentElement.clientWidth / 7.5 + 'px';
+
+  iPhone5的设计图就是：
+
+>     document.documentElement.style.fontSize = document.documentElement.clientWidth / 6.4 + 'px';
+
+3、做页面是测量设计图的px尺寸除以100得到rem尺寸。
+
+4、和淘宝的做法一样，文字字体大小不要使用rem换算。
+
+下面是这种做法的html莫板：
+
+```html
+<html>
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+</head>
+<body>
+    <script>
+    document.documentElement.style.fontSize = document.documentElement.clientWidth / 7.5 + 'px';
+    </script>
+</body>
+</html>
+```
+
+由于这种做法在开发中换算rem单位的时候只需要将测量的尺寸除以100即可，所以不需要使用计算器我们就可以很快的完成计算转换，所以这也会提升开发效率，本人也比较青睐这种做法。
+
+另外，无论是第一种做法还是第二种做法，我们都提到了，文字字体大小是不要换算成rem做单位的，而是使用媒体查询来进行动态设置，比如下面的代码就是网易的代码：
+
+代码片段一：
+``` css
+@media screen and (max-width: 321px) {
+    body {
+        font-size:16px
+    }
+}
+
+@media screen and (min-width: 321px) and (max-width:400px) {
+    body {
+        font-size:17px
+    }
+}
+
+@media screen and (min-width: 400px) {
+    body {
+        font-size:19px
+    }
+}
+```
+
+代码片段二：
+
+``` css
+@media screen and (max-width: 321px) {
+    header,footer {
+        font-size:16px
+    }
+}
+
+@media screen and (min-width: 321px) and (max-width:400px) {
+    header,footer {
+        font-size:17px
+    }
+}
+
+@media screen and (min-width: 400px) {
+    header,footer {
+        font-size:19px
+    }
+}
+```
+
+我们总结一下网易在文字字体大小上的做法，在媒体查询阶段，分为三个等级分别是：
+* 321px以下
+* 321px - 400px之间
+* 400px以上
+
+具体文字大小要多少个像素这个以设计图为准，但是这三个等级之间是有规律的，仔细观察发现，321px以下的屏幕字体大小比321px - 400px之间的屏幕字体大小要小一个像素，而321px - 400px之间的屏幕字体大小要比400以上屏幕字体大小要小2个像素。依照这个规律，我们根据设计图所在的像素区段先写好该区段的字体大小，然后分别写出另外两个区段的字体大小媒体查询代码就可以了。
